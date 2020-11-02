@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
+using OrderApp.DataAccess.Restaurants;
+using OrderApp.Domain.Restaurants;
 
 namespace OrderApp
 {
@@ -7,7 +9,13 @@ namespace OrderApp
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            var webHost = CreateWebHostBuilder(args).Build();
+            var restaurantRepository = webHost.Services.GetService(typeof(IRestaurantRepository)) as RestaurantRepository;
+            if(restaurantRepository != null)
+            {
+                restaurantRepository.LoadJson();
+            }            
+            webHost.Run();
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>

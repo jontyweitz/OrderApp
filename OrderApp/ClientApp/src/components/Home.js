@@ -1,26 +1,139 @@
 import React, { Component } from 'react';
+import debounce from '../debounce'
+import  OrderSuccessfulModal from './OrderSuccessfulModal'
 
 export class Home extends Component {
-  displayName = Home.name
+    constructor(props) {
+        super(props);
+        this.state = {
+            results: [],
+            searchTerms: undefined,
+            loading: false,
+            showSucessModal: false,
+            cart: {},
+            orderCost: 0
+        };
+    }
 
-  render() {
-    return (
-      <div>
-        <h1>Hello, world!</h1>
-        <p>Welcome to your new single-page application, built with:</p>
-        <ul>
-          <li><a href='https://get.asp.net/'>ASP.NET Core</a> and <a href='https://msdn.microsoft.com/en-us/library/67ef8sbd.aspx'>C#</a> for cross-platform server-side code</li>
-          <li><a href='https://facebook.github.io/react/'>React</a> for client-side code</li>
-          <li><a href='http://getbootstrap.com/'>Bootstrap</a> for layout and styling</li>
-        </ul>
-        <p>To help you get started, we've also set up:</p>
-        <ul>
-          <li><strong>Client-side navigation</strong>. For example, click <em>Counter</em> then <em>Back</em> to return here.</li>
-          <li><strong>Development server integration</strong>. In development mode, the development server from <code>create-react-app</code> runs in the background automatically, so your client-side resources are dynamically built on demand and the page refreshes when you modify any file.</li>
-          <li><strong>Efficient production builds</strong>. In production mode, development-time features are disabled, and your <code>dotnet publish</code> configuration produces minified, efficiently bundled JavaScript files.</li>
-        </ul>
-        <p>The <code>ClientApp</code> subdirectory is a standard React application based on the <code>create-react-app</code> template. If you open a command prompt in that directory, you can run <code>npm</code> commands such as <code>npm test</code> or <code>npm install</code>.</p>
-      </div>
-    );
-  }
+    fectResults = debounce(function (searchTerm) {
+        this.setState({ ...this.state, loading: true });
+        fetch('api/Restaurant/Search?searchTerms=' + searchTerm)
+            .then(response => response.json())
+            .then(data => {
+                this.setState({ ...this.state, searchTerms: searchTerm, results: data, loading: false, });
+            });
+    }, 500);
+
+    renderResults(results) {
+        if (!results || results.length === 0) {
+            return <p><em>No Results</em></p>
+        }
+        else {
+
+            return (
+                <div className="row">
+                    {this.state.results.map(restaurant => this.renderRestaurant(restaurant))}
+                </div>)
+        }
+    }
+
+    onCheckBoxClick(e, menuItem) {
+        var cart = this.state.cart;
+        if (e.target.checked) {
+            cart[menuItem.id] = menuItem;
+            this.setState({ ...this.state, cart: cart, orderCost: orderCost })
+        }
+        else {
+            var cart = this.state.cart;
+            delete cart[menuItem.id];
+        }
+        var orderCost = this.calculateOrderCost();
+        this.setState({ ...this.state, cart: cart, orderCost: orderCost })
+    }
+
+    calculateOrderCost() {
+        var cart = this.state.cart;
+        var total = 0;
+        Object.keys(cart).forEach(function (key) {
+            total += cart[key].price;
+        });
+        return total;
+    }
+
+    renderRestaurant(restaurant) {
+        return (
+            <div className="col mt-1" key={restaurant.id}>
+                <div className="row"><img src={restaurant.logoPath} />{restaurant.name + ' - ' + restaurant.suburb + ' - rated #' + restaurant.rank + ' over all'}</div>
+                {restaurant.categories.map(category => {
+                    return (
+                        <div className="col-11 offset-1" key={restaurant.id + category.name}>
+                            <div><b>{category.name}</b>
+                                {category.menuItems.map(menuItem => {
+                                    return (<div key={menuItem.id}>
+                                        <input type="checkbox" id="vehicle1" name={menuItem.id + "CheckBox"} onChange={(e) => this.onCheckBoxClick(e, menuItem)} />
+                                        <span className="ml-1">{menuItem.name + ' - R' + menuItem.price}</span></div>)
+                                })}
+                            </div>
+                        </div>)
+                })}
+            </div>
+        )
+    }
+
+    handleSearchChange(e) {
+        this.fectResults(e.target.value);
+    }
+
+    orderClicked() {
+        fetch('api/Restaurant/Order', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(Object.values(Object.values(this.state.cart)))
+        }).then(response => {
+            if (response.status !== 200) {
+                console.log("Something went wrong")
+            }
+            else {
+                this.setState({ ...this.state, showSucessModal: true })
+            }
+        })
+    }
+
+    render() {
+        let contents = this.state.loading
+            ? <p><em>Loading...</em></p>
+            : this.renderResults(this.state.results)
+        return (
+            <div className="container">
+                <div className="row mt-3" >
+                    <div className="col-6 offset-3">
+                        <input type="text" className="form-control" placeholder="Search" aria-label="Search" onChange={(e) => this.handleSearchChange(e)} />
+                    </div>
+                </div>
+
+                {this.state.searchTerms &&
+                    (<div className="row mt-1" >
+                    <div className="col-6 offset-3">
+                        {"Results for '" + this.state.searchTerms + "'"}
+                    </div>
+                </div>)}
+
+                <div className="row mt-1" >
+                    <div className="col-6 offset-3">
+                        {contents}
+                    </div>
+                </div>
+
+                <div className="row mt-1" >
+                    <div className="col-6 offset-3">
+                        <button onClick={() => this.orderClicked()} disabled={this.state.orderCost === 0}>{"Order - R" + this.state.orderCost}</button>
+                    </div>
+                </div>
+                <OrderSuccessfulModal show={this.state.showSucessModal} handleClose={() => this.setState({ showSucessModal: false })} />
+            </div>
+        );
+    }
 }

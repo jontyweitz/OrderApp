@@ -30,7 +30,10 @@ namespace OrderApp
                 configuration.RootPath = "ClientApp/build";
             });
 
-            services.AddTransient<IRestaurantRepository, RestaurantRepository>();
+            if(Configuration.GetValue<string>("DataSource") == "json")
+            {
+                services.AddSingleton<IRestaurantRepository, RestaurantRepository>();
+            }            
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

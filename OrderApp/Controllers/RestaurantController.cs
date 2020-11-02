@@ -17,15 +17,29 @@ namespace OrderApp.Controllers
         }
 
         [HttpGet("search")]
-        public IEnumerable<Restaurant> Search([FromQuery]string searchTerms = "")
+        public IEnumerable<Restaurant> Search([FromQuery]string searchTerms)
         {
-            var terms = searchTerms.Replace(" in ", " ").Split(' ').ToList();
-            var menuItem = terms[0] ?? "";
-            if (terms.Count > 0)
+            if (searchTerms != null)
             {
-                terms.RemoveAt(0);
+                var terms = searchTerms.Replace(" in ", " ").Split(' ').ToList();
+                var menuItem = terms[0] ?? "";
+                if (terms.Count > 0)
+                {
+                    terms.RemoveAt(0);
+                }
+                return restaurantRepository.SearchRestaurants(menuItem, string.Join(' ', terms));
             }
-            return restaurantRepository.SearchRestaurants(menuItem, string.Join(' ', terms));
-        }     
+            return restaurantRepository.SearchRestaurants(null, null);
+        }
+
+        [HttpPost("Order")]
+        public StatusCodeResult Order([FromBody]List<MenuItem> menuItems)
+        {
+            if(menuItems.Count > 0)
+            {
+                return Ok();
+            }
+            return BadRequest();            
+        }
     }
 }

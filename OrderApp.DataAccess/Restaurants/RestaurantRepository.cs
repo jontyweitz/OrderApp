@@ -20,26 +20,26 @@ namespace OrderApp.DataAccess.Restaurants
         }
 
         public IEnumerable<Restaurant> SearchRestaurants(string menuItemTerm, string location)
-        {
-            LoadJson();
-            var matches = restaurants.Where(res => location == string.Empty || string.Equals(res.City, location, StringComparison.InvariantCultureIgnoreCase)
-            && res.Categories.Where(category => menuItemTerm == string.Empty || category.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)
-                || category.MenuItems.Where(menuItem =>  menuItem.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)).Any()).Any());
+        {           
+            var matches = restaurants.Where(res => (string.IsNullOrEmpty(location) || string.Equals(res.City, location, StringComparison.InvariantCultureIgnoreCase))
+            && (res.Categories.Where(category => string.IsNullOrEmpty(menuItemTerm) || category.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)
+                || category.MenuItems.Where(menuItem =>  menuItem.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)).Any()).Any()));
 
             return matches.Select(restaurant => new Restaurant()
             {
                 Id = restaurant.Id,
                 Name = restaurant.Name,
                 Suburb = restaurant.Suburb,
+                LogoPath = restaurant.LogoPath,
                 Rank = restaurant.Rank,
-                Categories = restaurant.Categories.Where(category => menuItemTerm == string.Empty || category.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)
+                Categories = restaurant.Categories.Where(category => string.IsNullOrEmpty(menuItemTerm) || category.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)
                 || category.MenuItems.Where(menuItem => menuItem.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)).Any())
                 .Select(category => new Category
                 {
                     Name = category.Name,
-                    MenuItems = category.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)
+                    MenuItems = string.IsNullOrEmpty(menuItemTerm) || category.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase)
                     ? category.MenuItems
-                    : category.MenuItems.Where(menuItem => menuItemTerm == string.Empty || menuItem.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase))
+                    : category.MenuItems.Where(menuItem => string.IsNullOrEmpty(menuItemTerm) || menuItem.Name.Contains(menuItemTerm, StringComparison.InvariantCultureIgnoreCase))
                         .Select(menuItem => new MenuItem
                         {
                             Id = menuItem.Id,
